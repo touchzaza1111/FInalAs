@@ -30,54 +30,190 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
 </head>
 
 <body>
     <button id="scene-toggle-button">Toggle Scene: Star Sky</button>
+    <label style="position:absolute;top:20px;right:250px;z-index:100;background:#fff;padding:2px 6px;border-radius:4px;">Light Angle: <input id="light-angle-slider" type="range" min="0" max="6.283" step="0.01" value="0" style="vertical-align:middle;width:120px;"></label>
 
     <script>
         (() => {
             // --- Scene / Camera / Renderer ---
             const scene = new THREE.Scene();
-            // 💡 Setting the initial background color (Blue Sky)
-            scene.background = new THREE.Color(0x87CEEB);
-
+            
+            //Camera
             const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 100);
-            camera.position.set(5, 5, 5);
-
+            camera.position.set(5, 8, -5);
+            
             const renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(innerWidth, innerHeight);
-            document.body.appendChild(renderer.domElement);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild(renderer.domElement);
 
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.target.set(0, 0.5, 0);
+            controls.target.set(0, 2, 0);
             controls.enableDamping = true;
 
-            // --- Ground (เส้นกริดช่วยกะระยะ) ---
-            const grid = new THREE.GridHelper(10, 10, 0x666666, 0x333333);
-            grid.position.y = -0.001;
-            scene.add(grid);
+            //light
+            const directionalLight = new THREE.DirectionalLight(0x0000ff, 2);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
 
-            const loader = new THREE.OBJLoader();
-            loader.load('https://touchzaza1111.github.io/FinalAs/room.obj', function (object) {
-                object.castShadow = true; // ✅ วัตถุนี้สร้างเงา
-                // ตั้งค่า castShadow กับทุก mesh ใน object
-                object.traverse(function (child) {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                        child.material = new THREE.MeshBasicMaterial({
-                            color: 0x5db6ff 
-                        });
-                    }
-                });
-                object.scale.set(0.1, 0.1, 0.1); // ✅ ลดขนาดของโมเดล
-                object.position.set(0, -23, 0);
-                scene.add(object);
-            }, undefined, function (error) {
-                console.error('Error loading OBJ:', error);
+            const secondDirectionalLight = new THREE.DirectionalLight(0xff69b4, 1);
+            secondDirectionalLight.castShadow = true;
+            scene.add(secondDirectionalLight);
+
+            const ambLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambLight);
+
+            // Load two HDR environments and set up toggle
+            let envMapDay = null;
+            let envMapNight = null;
+            let isNight = false;
+
+            // Load day environment
+            new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('https://touchzaza1111.github.io/FInalAs/rogland_overcast_1k.hdr', function(texture) {
+                envMapDay = texture;
+                envMapDay.mapping = THREE.EquirectangularReflectionMapping;
+                if (!isNight) {
+                    scene.environment = envMapDay;
+                    scene.background = envMapDay;
+                }
             });
+            // Load night environment
+            new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('https://touchzaza1111.github.io/FInalAs/rogland_clear_night_1k.hdr', function(texture) {
+                envMapNight = texture;
+                envMapNight.mapping = THREE.EquirectangularReflectionMapping;
+                if (isNight) {
+                    scene.environment = envMapNight;
+                    scene.background = envMapNight;
+                }
+            });
+
+            let isStarryNight = false; // State variable for the scene
+
+            // HDR URLs
+            const hdrOvercastUrl = 'https://touchzaza1111.github.io/FInalAs/rogland_overcast_1k.hdr';
+            const hdrClearNightUrl = 'https://touchzaza1111.github.io/FInalAs/rogland_clear_night_1k.hdr';
+            let hdrOvercast = null;
+            let hdrClearNight = null;
+
+            const button = document.getElementById('scene-toggle-button');
+
+            function toggleSceneBackground() {
+                isNight = !isNight;
+                if (isNight) {
+                    if (envMapNight) {
+                        scene.environment = envMapNight;
+                        scene.background = envMapNight;
+                    }
+                    button.textContent = 'Toggle Scene: Blue Sky';
+                } else {
+                    if (envMapDay) {
+                        scene.environment = envMapDay;
+                        scene.background = envMapDay;
+                    }
+                    button.textContent = 'Toggle Scene: Star Sky';
+                }
+            }
+
+            // ADDED: Event listener for the button
+            button.addEventListener('click', toggleSceneBackground);
+            button.addEventListener('touchend', (e) => { toggleSceneBackground(); }, { passive: true });
+            // --------------------------------------------------------
+
+            // --- Resize ---
+            addEventListener('resize', () => {
+                camera.aspect = innerWidth / innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(innerWidth, innerHeight);
+            });
+
+            /*function lerp(a, b, t) {
+                return a + (b - a) * t;  // t ใน [0..1]
+            }*/
+            
+
+             // Add a sphere to the scene
+            const sphereGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff, roughness: 0.4, metalness: 0.2 });
+            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            sphere.position.set(6, 11, 6);
+            scene.add(sphere);
+
+            
+            const sphereMaterial2 = new THREE.MeshStandardMaterial({ color: 0xff69b4, roughness: 0.4, metalness: 0.2 });
+            const sphere2 = new THREE.Mesh(sphereGeometry, sphereMaterial2);
+            sphere2.position.set(6, 11, 6);
+            scene.add(sphere2);
+            // --- Load glTF (
+            const gltfLoader = new THREE.GLTFLoader();
+            gltfLoader.load(
+                'https://touchzaza1111.github.io/FInalAs/room.glb',
+                (gltf) => {
+                    const model = gltf.scene || gltf.scenes[0];
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                        }
+                    });
+                    model.position.set(0, 0, 0);
+                    model.scale.set(0.5, 0.5, 0.5);
+                    scene.add(model);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading glTF:', error);
+                }
+            );
+
+            const gltfLoader2 = new THREE.GLTFLoader();
+            gltfLoader2.load(
+                'https://touchzaza1111.github.io/FInalAs/modern_chair.glb',
+                (gltf) => {
+                    const model = gltf.scene || gltf.scenes[0];
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                        }
+                    });
+                    model.position.set(-0.4, 1.2, 0);
+                    model.scale.set(2, 2, 2);
+                    model.rotation.set(0, 3, 0);
+                    scene.add(model);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading glTF:', error);
+                }
+            );
+            
+            const gltfLoader3 = new THREE.GLTFLoader();
+            gltfLoader3.load(
+                'https://touchzaza1111.github.io/FInalAs/Ku.glb',
+                (gltf) => {
+                    const model = gltf.scene || gltf.scenes[0];
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                        }
+                    });
+                    model.position.set(0, 4, 0);
+                    model.scale.set(1, 1, 1);
+                    model.rotation.set(0, 3, 0);
+                    scene.add(model);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading glTF:', error);
+                }
+            );
 
             /*
             // --- Objects (3 ชิ้น / สีต่างกัน / ไม่ต้องมีไฟเพราะใช้ MeshBasic) ---
@@ -149,52 +285,66 @@
             renderer.domElement.addEventListener('click', onPick);
             renderer.domElement.addEventListener('touchend', (e) => { onPick(e); }, { passive: true });
             */
+           
+            // Animate directional light in a circle (x=-5 to 5, z=-5 to 5, y=5)
+            let lightAngle = 0;
+            let lightPaused = true;
+            let lightSpeed = 0.01;
 
-            // --------------------------------------------------------
-            // 2. ADDED: SCENE TOGGLE LOGIC
-            // --------------------------------------------------------
-
-            let isStarryNight = false; // State variable for the scene
-
-            const blueSkyColor = new THREE.Color(0x87CEEB); // Light Sky Blue
-            const starSkyColor = new THREE.Color(0x0a0a2a); // Deep Space Blue/Black
-
-            const button = document.getElementById('scene-toggle-button');
-
-            function toggleSceneBackground() {
-                isStarryNight = !isStarryNight;
-
-                if (isStarryNight) {
-                    // Set to Star Sky (dark background)
-                    scene.background = starSkyColor;
-                    button.textContent = 'Toggle Scene: Blue Sky';
-                    // Optional: You could add a simple star field (Points) here.
-                } else {
-                    // Set to Blue Sky (light background)
-                    scene.background = blueSkyColor;
-                    button.textContent = 'Toggle Scene: Star Sky';
-                }
-            }
-
-            // 3. ADDED: Event listener for the button
-            button.addEventListener('click', toggleSceneBackground);
-
-            // --------------------------------------------------------
-
-
-            // --- Resize ---
-            addEventListener('resize', () => {
-                camera.aspect = innerWidth / innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(innerWidth, innerHeight);
+            // Light angle slider interaction
+            const lightAngleSlider = document.getElementById('light-angle-slider');
+            let userInteractingWithLight = false;
+            lightAngleSlider.addEventListener('input', function() {
+                userInteractingWithLight = true;
+                lightAngle = parseFloat(this.value);
+            });
+            lightAngleSlider.addEventListener('change', function() {
+                userInteractingWithLight = false;
             });
 
-            function lerp(a, b, t) {
-                return a + (b - a) * t;  // t ใน [0..1]
-            }
-
-            // --- Loop ---
+            // --- Environment Rotation ---
+            let envRotation = 0;
             function loop() {
+
+                // Animate or interactively control directional light in a circle (x=-5 to 5, z=-5 to 5, y=11)
+                if (!userInteractingWithLight && !lightPaused) {
+                    lightAngle += lightSpeed;
+                    if (lightAngle > Math.PI * 2) lightAngle -= Math.PI * 2;
+                }
+                // Update slider if not interacting
+                if (!userInteractingWithLight) {
+                    lightAngleSlider.value = lightAngle;
+                }
+                const radius = 6;
+                const lightX = Math.cos(lightAngle) * radius;
+                const lightZ = Math.sin(lightAngle) * radius;
+                const lightY = 5;
+
+                // Second light: left next to first (90 degrees behind)
+                const secondLightAngle = lightAngle - Math.PI / 2;
+                const secondLightX = Math.cos(secondLightAngle) * radius;
+                const secondLightZ = Math.sin(secondLightAngle) * radius;
+
+                directionalLight.position.set(lightX, lightY, lightZ);
+                secondDirectionalLight.position.set(secondLightX, lightY, secondLightZ);
+                secondDirectionalLight.target.position.set(0, 0, 0);
+                directionalLight.target.position.set(0, 0, 0);
+
+                
+                // Make the sphere follow the same circular path as the light
+                sphere.position.set(lightX, lightY, lightZ);
+                sphere2.position.set(secondLightX, lightY, secondLightZ);
+                
+
+                // Rotate environment if HDR is set
+                const bg = scene.background;
+                if (bg && bg.isTexture) {
+                    envRotation += 0.002; // Adjust speed as needed
+                    bg.mapping = THREE.EquirectangularReflectionMapping;
+                    bg.center = new THREE.Vector2(0.5, 0.5);
+                    bg.rotation = envRotation;
+                    bg.needsUpdate = true;
+                }
                 controls.update();
                 renderer.render(scene, camera);
                 requestAnimationFrame(loop);
