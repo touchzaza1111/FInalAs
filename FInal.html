@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Final</title>
+    <title>Project</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
         html,
@@ -16,7 +16,6 @@
         canvas {
             display: block
         }
-
         /* Style for the button to make it visible and usable */
         #scene-toggle-button {
             position: absolute;
@@ -31,49 +30,84 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+    
 </head>
 
 <body>
     <button id="scene-toggle-button">Toggle Scene: Star Sky</button>
-    <label style="position:absolute;top:20px;right:250px;z-index:100;background:#fff;padding:2px 6px;border-radius:4px;">Light Angle: <input id="light-angle-slider" type="range" min="0" max="6.283" step="0.01" value="0" style="vertical-align:middle;width:120px;"></label>
-
     <script>
         (() => {
-            // --- Scene / Camera / Renderer ---.
+            
+            // --- Scene / Camera / Renderer ---
             const scene = new THREE.Scene();
-            
-            //Camera
             const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 100);
-            camera.position.set(5, 8, -5);
-            
+            camera.position.set(0, 2, 3);
+
             const renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(innerWidth, innerHeight);
-                renderer.shadowMap.enabled = true;
-                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                document.body.appendChild(renderer.domElement);
+            renderer.setPixelRatio(devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
 
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.target.set(0, 2, 0);
+            controls.target.set(3, 1, 1.2 );
             controls.enableDamping = true;
 
             //light
-            const directionalLight = new THREE.DirectionalLight(0x0000ff, 2);
+            const directionalLight = new THREE.DirectionalLight(0xff0000, 0.7);
+            directionalLight.position.set(6, 5, 0);
             directionalLight.castShadow = true;
+            
             scene.add(directionalLight);
 
-            const secondDirectionalLight = new THREE.DirectionalLight(0xff69b4, 1);
-            secondDirectionalLight.castShadow = true;
-            scene.add(secondDirectionalLight);
+            //const helper = new THREE.DirectionalLightHelper(directionalLight, 1);
+            //scene.add(helper);
 
-            const ambLight = new THREE.AmbientLight(0xffffff, 0.3);
-            scene.add(ambLight);
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;  
+
+            directionalLight.shadow.bias = -0.0005; // ค่าลบเล็กน้อย
+            directionalLight.shadow.normalBias = 0.05; // ค่าบวกเล็กน้อย
+
+            const pointlight = new THREE.PointLight(0x0000ff, 1);
+            pointlight.position.set(2.5, 2.5, -3);
+            pointlight.castShadow = true;
+            scene.add(pointlight);
+
+            //const pointlightHelper = new THREE.PointLightHelper(pointlight, 0.5);
+            //scene.add(pointlightHelper);
+
+            pointlight.shadow.mapSize.width = 1024;
+            pointlight.shadow.mapSize.height = 1024;
+
+            pointlight.shadow.bias = -0.0005; // ค่าลบเล็กน้อย
+            pointlight.shadow.normalBias = 0.05; // ค่าบวกเล็กน้อย
+
+            const pointlight2 = new THREE.PointLight(0x7700ff, 1 , 10, 2);
+            pointlight2.position.set(-2.5, 2, -2.5);
+            pointlight2.castShadow = true;
+            scene.add(pointlight2);
+
+            //const pointlightHelper2 = new THREE.PointLightHelper(pointlight2, 0.5);
+            //scene.add(pointlightHelper2);
+
+            pointlight2.shadow.mapSize.width = 1024;
+            pointlight2.shadow.mapSize.height = 1024;
+
+            pointlight2.shadow.bias = -0.0005; // ค่าลบเล็กน้อย
+            pointlight2.shadow.normalBias = 0.05; // ค่าบวกเล็กน้อย
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
 
             // Load two HDR environments and set up toggle
             let envMapDay = null;
             let envMapNight = null;
             let isNight = false;
-
             // Load day environment
             new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('https://touchzaza1111.github.io/FInalAs/rogland_overcast_1k.hdr', function(texture) {
                 envMapDay = texture;
@@ -120,36 +154,7 @@
                 }
             }
 
-            // ADDED: Event listener for the button
-            button.addEventListener('click', toggleSceneBackground);
-            button.addEventListener('touchend', (e) => { toggleSceneBackground(); }, { passive: true });
-            // --------------------------------------------------------
-
-            // --- Resize ---
-            addEventListener('resize', () => {
-                camera.aspect = innerWidth / innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(innerWidth, innerHeight);
-            });
-
-            /*function lerp(a, b, t) {
-                return a + (b - a) * t;  // t ใน [0..1]
-            }*/
-            
-
-             // Add a sphere to the scene
-            const sphereGeometry = new THREE.SphereGeometry(0.3, 32, 32);
-            const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff, roughness: 0.4, metalness: 0.2 });
-            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            sphere.position.set(6, 11, 6);
-            scene.add(sphere);
-
-            
-            const sphereMaterial2 = new THREE.MeshStandardMaterial({ color: 0xff69b4, roughness: 0.4, metalness: 0.2 });
-            const sphere2 = new THREE.Mesh(sphereGeometry, sphereMaterial2);
-            sphere2.position.set(6, 11, 6);
-            scene.add(sphere2);
-            // --- Load glTF (
+            // --- Load Models ---
             const gltfLoader = new THREE.GLTFLoader();
             gltfLoader.load(
                 'https://touchzaza1111.github.io/FInalAs/room.glb',
@@ -162,7 +167,7 @@
                         }
                     });
                     model.position.set(0, 0, 0);
-                    model.scale.set(0.5, 0.5, 0.5);
+                    //model.scale.set(0.1, 0.1, 0.1);
                     scene.add(model);
                 },
                 undefined,
@@ -171,9 +176,10 @@
                 }
             );
 
+            
             const gltfLoader2 = new THREE.GLTFLoader();
             gltfLoader2.load(
-                'https://touchzaza1111.github.io/FInalAs/modern_chair.glb',
+                'https://touchzaza1111.github.io/FInalAs/arcane_vi_gauntlet_fanart.glb',
                 (gltf) => {
                     const model = gltf.scene || gltf.scenes[0];
                     model.traverse((node) => {
@@ -182,9 +188,8 @@
                             node.receiveShadow = true;
                         }
                     });
-                    model.position.set(-0.4, 1.2, 0);
-                    model.scale.set(2, 2, 2);
-                    model.rotation.set(0, 3, 0);
+                    model.position.set(-0.3, 0.91, 0.3);
+                    model.rotation.set(Math.PI / 2.5, 0, 0);
                     scene.add(model);
                 },
                 undefined,
@@ -193,73 +198,371 @@
                 }
             );
             
-            const gltfLoader3 = new THREE.GLTFLoader();
-            gltfLoader3.load(
-                'https://touchzaza1111.github.io/FInalAs/Ku.glb',
-                (gltf) => {
-                    const model = gltf.scene || gltf.scenes[0];
-                    model.traverse((node) => {
+            
+            const vert = `
+            uniform float uTime;
+            varying vec3 vNormal;
+            varying vec3 vPosW;
+            varying vec2 vUv;
+
+            void main(){
+                vNormal = normalize(mat3(modelMatrix) * normal);
+                vec3 pos = position;
+                vPosW   = ( modelMatrix * vec4(pos, 1.0)).xyz;
+                vUv     = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+            `;
+
+            const frag = `
+            uniform vec3 uLightDir1;
+            uniform vec3 uLightColor1;
+            uniform vec3 uLightDir2;
+            uniform vec3 uLightColor2;
+            uniform sampler2D uMap;
+            varying vec3 vNormal;
+            varying vec3 vPosW;
+            varying vec2 vUv;
+
+            void main()
+            {
+                vec4 texel = texture2D(uMap, vUv);
+
+                // Light 1
+                float diffuse1 = max(dot(vNormal, uLightDir1), 0.0);
+                float levels = 4.0;
+                diffuse1 = floor(diffuse1 * levels) / levels;
+                vec3 R1 = reflect(-uLightDir1, vNormal);
+                vec3 V = normalize(cameraPosition - vPosW);
+                float specular1 = max(pow(dot(R1, V), 64.0), 0.0);
+                specular1 = step(0.5, specular1);
+                specular1 *= diffuse1;
+
+                // Light 2
+                float diffuse2 = max(dot(vNormal, uLightDir2), 0.0);
+                diffuse2 = floor(diffuse2 * levels) / levels;
+                vec3 R2 = reflect(-uLightDir2, vNormal);
+                float specular2 = max(pow(dot(R2, V), 64.0), 0.0);
+                specular2 = step(0.5, specular2);
+                specular2 *= diffuse2;
+
+                vec3 base = texel.rgb;
+                vec3 color = (base * (uLightColor1 * diffuse1 + uLightColor2 * diffuse2)) + vec3(specular1 + specular2);
+                gl_FragColor = vec4(color, 1.0);
+            }
+            `;
+            
+            const material = new THREE.ShaderMaterial({
+                vertexShader: vert,
+                fragmentShader: frag,
+                uniforms: {
+                    uTime: { value: 0 },
+                    uLightDir1: { value: new THREE.Vector3(-4, 3, 0.8).normalize() },
+                    uLightColor1: { value: new THREE.Color(0xFF8888) },
+                    uLightDir2: { value: pointlight.position.clone().normalize() },
+                    uLightColor2: { value: new THREE.Color(0x0000ff) },
+                    uMap: { value: new THREE.TextureLoader().load('https://touchzaza1111.github.io/FInalAs/12_meshes_Merge_Diffuse2.png') }
+                }
+            });
+
+            const objLoader = new THREE.OBJLoader();
+            objLoader.load(
+                'https://touchzaza1111.github.io/FInalAs/Jinx.obj',
+                (obj) => {
+                    obj.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
                             node.receiveShadow = true;
+                            node.material = material;
                         }
                     });
-                    model.position.set(0, 4, 0);
-                    model.scale.set(1, 1, 1);
-                    model.rotation.set(0, 3, 0);
-                    scene.add(model);
+                    obj.position.set(3, 0, 1.2);
+                    obj.scale.set(1.5, 1.5, 1.5);
+                    obj.rotation.set(0, -Math.PI / 2, 0);
+                    scene.add(obj);
                 },
                 undefined,
                 (error) => {
-                    console.error('Error loading glTF:', error);
+                    console.error('Error loading Object:', error);
+                }
+            );
+            
+            // --- uniforms (เพิ่ม uTime) ---
+            const uniforms = { uTime: { value: 0.0 } };
+
+            const vert2 = `
+                uniform float uTime;
+                void main(){
+                float PI = 3.141592653589793;
+                vec3 pos = position;
+                
+                //ลองใช้วิธีปรับตำแหน่งแกน z 
+                //pos.z = cos(pos.y + uTime) * 0.1; // ปรับความสูงได้ด้วยการคูณ factor
+                
+                //ทดลองใช้วิธีปรับตำแหน่งจาก Normal 
+                vec3 N = normalize(normal); 
+                pos += N * (sin(pos.x + uTime) * 0.1) + N * (cos(pos.y + uTime) * 0.01); // ปรับความสูงได้ด้วยการคูณ factor
+
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `;
+
+            const frag2 = `
+                precision mediump float;
+                void main(){ gl_FragColor = vec4(0.5, 0.0, 1.0, 1.0); }
+            `;
+
+            const vert3 = `
+                uniform float uTime;
+                void main(){
+                float PI = 3.141592653589793;
+                vec3 pos = position;
+                
+                //ลองใช้วิธีปรับตำแหน่งแกน z 
+                //pos.z = cos(pos.y + uTime) * 0.1; // ปรับความสูงได้ด้วยการคูณ factor
+                
+                //ทดลองใช้วิธีปรับตำแหน่งจาก Normal 
+                vec3 N = normalize(normal); 
+                pos += N * (sin(pos.x + uTime) * 0.1) + N * (cos(pos.y + uTime) * 0.01); // ปรับความสูงได้ด้วยการคูณ factor
+
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `;
+
+            const frag3 = `
+                precision mediump float;
+                void main(){ gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0); }
+            `;
+
+            const geo = new THREE.SphereBufferGeometry(0.4, 20, 20);
+            const mat = new THREE.ShaderMaterial({
+                vertexShader: vert2,
+                fragmentShader: frag2,
+                uniforms,
+                side: THREE.DoubleSide,
+                //wireframe: true
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(-2.5, 2, -2.5);
+            scene.add(mesh);
+
+            const objLoader4 = new THREE.OBJLoader();
+            objLoader4.load(
+                'https://touchzaza1111.github.io/FInalAs/Untitled.obj',
+                (obj) => {
+                    obj.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            node.material = new THREE.ShaderMaterial({
+                                vertexShader: vert3,
+                                fragmentShader: frag3,
+                                uniforms,
+                                side: THREE.DoubleSide,
+                            });
+                        }
+                    });
+                    obj.position.set(-2.5, 2, -2.5);
+                    obj.scale.set(0.5, 0.5, 0.5);
+                    scene.add(obj);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading Object:', error);
+                }
+            );
+            
+            const DEG2RAD = Math.PI / 180;
+            const objLoader1 = new THREE.OBJLoader();
+            objLoader1.load(
+                'https://touchzaza1111.github.io/FInalAs/Miniarcanetxt.obj',
+                (obj) => {
+                    obj.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            node.material = defaultMaterial = new THREE.MeshPhongMaterial({
+                                color: 0xffffff,
+                            });
+                        }
+                    });
+                    obj.position.set(2, 1.6, 2);
+                    obj.scale.set(0.4, 0.4, 0.4);
+                    obj.rotation.set(90 * DEG2RAD, 0 * DEG2RAD, 45);
+                    scene.add(obj);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading Object:', error);
                 }
             );
 
-            /*
-            // --- Objects (3 ชิ้น / สีต่างกัน / ไม่ต้องมีไฟเพราะใช้ MeshBasic) ---
-            const clickable = [];
+            const objLoader2 = new THREE.OBJLoader();
+            objLoader2.load(
+                'https://touchzaza1111.github.io/FInalAs/yogdy_jinxrtxt.obj',
+                (obj) => {
+                    obj.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            node.material = defaultMaterial = new THREE.MeshPhongMaterial({
+                                color: 0xffffff,
+                            });
+                        }
+                    });
+                    obj.position.set(0, 3, -4.5);
+                    obj.scale.set(0.4, 0.4, 0.4);
+                    obj.rotation.set(90 * DEG2RAD, 0 * DEG2RAD, 90 * DEG2RAD);
+                    scene.add(obj);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading Object:', error);
+                }
+            );
 
+            const objLoader3 = new THREE.OBJLoader();
+            objLoader3.load(
+                'https://touchzaza1111.github.io/FInalAs/postias_ViGlovetxt.obj',
+                (obj) => {
+                    obj.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            node.material = defaultMaterial = new THREE.MeshPhongMaterial({
+                                color: 0xffffff,
+                            });
+                        }
+                    });
+                    obj.position.set(-0.5, 3, 0);
+                    obj.scale.set(0.4, 0.4, 0.4);
+                    obj.rotation.set(90 * DEG2RAD, 0 * DEG2RAD, 180 * DEG2RAD);
+                    scene.add(obj);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading Object:', error);
+                }
+            );
 
-            function addObj(mesh, pos, name) {
-                mesh.position.copy(pos);
-                mesh.name = name;
-                scene.add(mesh);
-                clickable.push(mesh);
-                return mesh;
+            const txtLoader = new THREE.TextureLoader();
+            const texture = txtLoader.load('https://as2.ftcdn.net/v2/jpg/04/38/82/85/360_F_438828559_QccWdc3zAULf7uLTzekIt5XlOEnGj6X0.jpg');
+            const geo2 = new THREE.PlaneBufferGeometry(0.6, 0.7);
+            const mat2 = new THREE.MeshBasicMaterial({
+                castShadow: true,
+                receiveShadow: true,
+                map: texture
+            });
+            const mesh2 = new THREE.Mesh(geo2, mat2);
+            mesh2.position.set(-1.3, 3.27, 1.2);
+            mesh2.rotation.set(0 * DEG2RAD, 30 * DEG2RAD, 0);
+            scene.add(mesh2);
+
+            const clickable = []; // Array to store clickable objects
+            function loadObj(objUrl, color, pos, rotation = new THREE.Vector3(0, 0, 0) , scale = new THREE.Vector3(0, 0, 0), name) {
+                objLoader.load(
+                    objUrl,
+                    (model) => {
+                        // Create a default material
+                        const defaultMaterial = new THREE.MeshPhongMaterial({
+                            color: color,
+                        });
+
+                        // Iterate through all children (meshes) and apply the default material
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                child.material = defaultMaterial;
+                            }
+                        });
+
+                        // Create a container to apply the final position and scale
+                        const pivot = new THREE.Group();
+                        pivot.add(model);
+
+                        // Set final properties
+                        pivot.position.copy(pos);
+                        pivot.rotation.set(rotation.x, rotation.y, rotation.z);
+                        pivot.name = name;
+                        pivot.scale.copy(scale);
+                        // Scale the model (adjust as necessary)
+                       
+
+                        scene.add(pivot);
+                        clickable.push(pivot);
+
+                        console.log(`Loaded ${name} from ${objUrl} with default material.`);
+                    },  
+                    (error) => {
+                        console.error(`An error happened loading OBJ ${objUrl}:`, error);
+                    }
+                );
             }
+            
 
-
-            addObj(
-                new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0xff6b6b })),
-                new THREE.Vector3(-2, 0.4, 0),
-                'Box'
+            // --- Load Objects from GitHub ---
+            // NOTE: Replace the URLs below with the RAW links to your .obj models on GitHub.
+            const BASE_URL = 'https://touchzaza1111.github.io/FInalAs/';
+            loadObj(
+                BASE_URL + 'AboutMetxt.obj', // Replace with your OBJ filename
+                new THREE.Color(0xffffff), // White color
+                new THREE.Vector3(2, 1.3, 2),
+                new THREE.Vector3(90 * DEG2RAD, 0 * DEG2RAD, 45),
+                new THREE.Vector3(0.3, 0.3, 0.3),
+                'ObjectA'
             );
 
-            addObj(
-                new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 16), new THREE.MeshBasicMaterial({ color: 0x5dff9b })),
-                new THREE.Vector3(0, 0.45, 0),
-                'Sphere'
+            loadObj(
+                BASE_URL + 'Credittxt.obj',
+                new THREE.Color(0xffffff), // Green color
+                new THREE.Vector3(2, 1, 2),
+                new THREE.Vector3(90 * DEG2RAD, 0 * DEG2RAD, 45),
+                new THREE.Vector3(0.2, 0.2, 0.2),
+                'ObjectB'
             );
 
-            addObj(
-                new THREE.Mesh(new THREE.ConeGeometry(0.5, 1, 24), new THREE.MeshBasicMaterial({ color: 0x5db6ff })),
-                new THREE.Vector3(2, 0.5, 0),
-                'Cone'
+            loadObj(
+                BASE_URL + 'Backtxt.obj',
+                new THREE.Color(0xffffff), // Blue color
+                new THREE.Vector3(-0.5, 2.5, 1),
+                new THREE.Vector3(90 * DEG2RAD, 0 * DEG2RAD, -30 * DEG2RAD), // ROTATION: 15° X, 45° Y
+                new THREE.Vector3(0.3, 0.3, 0.3),
+                'ObjectC'
             );
 
+            loadObj(
+                BASE_URL + 'Backtxt.obj',
+                new THREE.Color(0xffffff), // Blue color
+                new THREE.Vector3(-4, 2, -2),
+                new THREE.Vector3(-90 * DEG2RAD, 180 * DEG2RAD, 0), // ROTATION: 15° X, 45° Y
+                new THREE.Vector3(0.5, 0.5, 0.5),
+                'ObjectD'
+            );
 
 
             // --- พรีเซ็ตตำแหน่งกล้องต่อวัตถุ (กำหนดง่าย ๆ) ---
             const VIEWS = {
-                Box: { pos: new THREE.Vector3(-3, 1.4, 1.6), tar: new THREE.Vector3(-2, 0.4, 0) },
-                Sphere: { pos: new THREE.Vector3(0, 1.8, 3.0), tar: new THREE.Vector3(0, 0.45, 0) },
-                Cone: { pos: new THREE.Vector3(3, 1.6, -2.0), tar: new THREE.Vector3(2, 0.5, 0) },
+                ObjectA: {
+                    pos: new THREE.Vector3( 0, 3.5, 3.4),
+                    tar: new THREE.Vector3(-2, 2, 0)
+                },
+                ObjectB: {
+                    pos: new THREE.Vector3(-5, 3, -5),
+                    tar: new THREE.Vector3(0, 0.5, 0)
+                },
+                ObjectC: {
+                    pos: new THREE.Vector3(0, 2, 3),
+                    tar: new THREE.Vector3(3, 1, 1.2)
+                },
+                ObjectD: {
+                    pos: new THREE.Vector3(0, 2, 3),
+                    tar: new THREE.Vector3(3, 1, 1.2)
+                }
             };
 
             // --- Raycaster + คลิกเพื่อสลับมุม ---
             const raycaster = new THREE.Raycaster();
             const pointer = new THREE.Vector2();
-            
+
             function setPointer(e) {
                 const r = renderer.domElement.getBoundingClientRect();
                 const x = (e.clientX ?? e.touches[0].clientX) - r.left;
@@ -267,76 +570,60 @@
                 pointer.x = (x / r.width) * 2 - 1;
                 pointer.y = -(y / r.height) * 2 + 1;
             }
-
+            
             function onPick(e) {
                 setPointer(e);
                 raycaster.setFromCamera(pointer, camera);
-                const hit = raycaster.intersectObjects(clickable, false)[0];
-                if (!hit) return;
-                const view = VIEWS[hit.object.name];
-                if (!view) return;
+                const hit = raycaster.intersectObjects(clickable, true)[0];
 
-                // ย้ายแบบทันที (ถ้าอยากนุ่ม ๆ ค่อยเสริม lerp ทีหลัง)
+                if (!hit) return;
+                
+                // Find the top-level clickable object (the pivot/group)
+                let pickedObject = hit.object;
+                while (pickedObject.parent && pickedObject.parent !== scene) {
+                    pickedObject = pickedObject.parent;
+                    if (pickedObject.name in VIEWS) break; // Found the top-level named group
+                }
+
+                if (!pickedObject || !pickedObject.name) return;
+
+                const view = VIEWS[pickedObject.name];
+                if (!view) return;
+                
                 camera.position.copy(view.pos);
                 controls.target.copy(view.tar);
                 controls.update();
             }
 
+            function lerp(a, b, t) {
+                return a + (b - a) * t;   // t ใน [0..1]
+            }
+
             renderer.domElement.addEventListener('click', onPick);
-            renderer.domElement.addEventListener('touchend', (e) => { onPick(e); }, { passive: true });
-            */
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                onPick(e);
+            }, {
+                passive: true
+            });
+
            
-            // Animate directional light in a circle (x=-5 to 5, z=-5 to 5, y=5)
-            let lightAngle = 0;
-            let lightPaused = true;
-            let lightSpeed = 0.01;
-
-            // Light angle slider interaction
-            const lightAngleSlider = document.getElementById('light-angle-slider');
-            let userInteractingWithLight = false;
-            lightAngleSlider.addEventListener('input', function() {
-                userInteractingWithLight = true;
-                lightAngle = parseFloat(this.value);
-            });
-            lightAngleSlider.addEventListener('change', function() {
-                userInteractingWithLight = false;
+            
+            button.addEventListener('click', toggleSceneBackground);
+            button.addEventListener('touchstart', (e) => { toggleSceneBackground(); }, { passive: true });
+            
+            
+            // --- Resize ---
+            addEventListener('resize', () => {
+                camera.aspect = innerWidth / innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(innerWidth, innerHeight);
             });
 
-            // --- Environment Rotation ---
             let envRotation = 0;
+            // --- Loop ---
             function loop() {
+                uniforms.uTime.value += 0.01;
 
-                // Animate or interactively control directional light in a circle (x=-5 to 5, z=-5 to 5, y=11)
-                if (!userInteractingWithLight && !lightPaused) {
-                    lightAngle += lightSpeed;
-                    if (lightAngle > Math.PI * 2) lightAngle -= Math.PI * 2;
-                }
-                // Update slider if not interacting
-                if (!userInteractingWithLight) {
-                    lightAngleSlider.value = lightAngle;
-                }
-                const radius = 6;
-                const lightX = Math.cos(lightAngle) * radius;
-                const lightZ = Math.sin(lightAngle) * radius;
-                const lightY = 5;
-
-                // Second light: left next to first (90 degrees behind)
-                const secondLightAngle = lightAngle - Math.PI / 2;
-                const secondLightX = Math.cos(secondLightAngle) * radius;
-                const secondLightZ = Math.sin(secondLightAngle) * radius;
-
-                directionalLight.position.set(lightX, lightY, lightZ);
-                secondDirectionalLight.position.set(secondLightX, lightY, secondLightZ);
-                secondDirectionalLight.target.position.set(0, 0, 0);
-                directionalLight.target.position.set(0, 0, 0);
-
-                
-                // Make the sphere follow the same circular path as the light
-                sphere.position.set(lightX, lightY, lightZ);
-                sphere2.position.set(secondLightX, lightY, secondLightZ);
-                
-
-                // Rotate environment if HDR is set
                 const bg = scene.background;
                 if (bg && bg.isTexture) {
                     envRotation += 0.002; // Adjust speed as needed
@@ -345,12 +632,12 @@
                     bg.rotation = envRotation;
                     bg.needsUpdate = true;
                 }
+
                 controls.update();
                 renderer.render(scene, camera);
                 requestAnimationFrame(loop);
             }
             loop();
-
         })();
     </script>
 </body>
